@@ -56,7 +56,7 @@ class BasePorter(object):
         self.fetch_data = True
         self.ignore_tables = []
         self.temp_files = []
-        self.update_script = None
+        self.update_scripts = []
 
     def set_variables(self, port_info, quiet, debug, dry_run):
         """
@@ -88,7 +88,7 @@ class BasePorter(object):
             self.ignore_tables = port_info['ignore_tables']
 
         if 'update' in port_info:
-            self.update_script = port_info['update']
+            self.update_scripts = port_info['update']
 
     def get_temporary_file(self):
         """
@@ -152,14 +152,16 @@ class BasePorter(object):
 
     def create_update_commands(self):
         """
-        Makes the necessary command lines for applying and update to the destination databases
+        Makes the necessary command lines for applying updates to the destination databases
         :return:a list of tuples containing:
         * description to print to console
         * actual command
         """
+        commands = []
         description = "This command creates a new database on the destination host"
         command = "This is the actual command"
-        return description, command
+        commands.append((description, command))
+        return commands
 
     def do_portage(self):
         """
@@ -191,7 +193,7 @@ class BasePorter(object):
             cmd_list.append(self.create_dump_command(True, schema_file))
             cmd_list.extend(self.create_load_commands(schema_file))
 
-        if self.update_script:
+        if self.update_scripts:
             cmd_list.extend(self.create_update_commands())
 
         if not self.quiet:
@@ -220,7 +222,7 @@ class BasePorter(object):
                     # Remove the temp file used in the command from the
                     # list of temp files so it doesn't get deleted
                     for tf in self.temp_files:
-                        if tf.name in cmd[1]:
+                        if tf in cmd[1]:
                             self.temp_files.remove(tf)
 
             if not self.quiet:
@@ -286,10 +288,10 @@ class MySQLPorter(BasePorter):
         for ignore in self.ignore_tables:
             ignored_tables += '--ignore-table=%s.%s ' % (self.source['name'], ignore)
 
-        dump_cmd = '%s --lock-tables=false %s %s --result-file=%s ' % (self.mysqldump,
-                                                                       data_flag,
-                                                                       ignored_tables,
-                                                                       output_file)
+        dump_cmd = '%s --lock-tables=false --routines=true %s %s --result-file=%s ' % (self.mysqldump,
+                                                                                       data_flag,
+                                                                                       ignored_tables,
+                                                                                       output_file)
         dump_cmd += '-h%s -u%s -p%s %s' % (self.source['host'],
                                            self.source['user'],
                                            self.source['password'],
@@ -374,21 +376,25 @@ class MySQLPorter(BasePorter):
 
     def create_update_commands(self):
         """
-        Makes the mysql command lines for applying an update to the destination databases
+        Makes the mysql command lines for applying updates to the destination databases
         :return:a list of tuples containing:
         * description to print to console
         * actual command
         """
         update_commands = []
-        for dest in self.dest:
-            create_cmd = "%s -h%s -u%s -p%s %s < %s" % (self.mysql,
-                                                        dest['host'],
-                                                        dest['user'],
-                                                        dest['password'],
-                                                        dest['name'],
-                                                        self.update_script)
-            create_echo = 'Applying %s to %s.%s...' % (self.update_script, dest['host'], dest['name'])
-            update_commands.append((create_echo, create_cmd))
+        for update in self.update_scripts:
+            if not os.path.isfile(update):
+                print "ERROR: %s does not exist!" % update
+                continue
+            for dest in self.dest:
+                create_cmd = "%s -h%s -u%s -p%s %s < %s" % (self.mysql,
+                                                            dest['host'],
+                                                            dest['user'],
+                                                            dest['password'],
+                                                            dest['name'],
+                                                            update)
+                create_echo = 'Applying %s to %s.%s...' % (update, dest['host'], dest['name'])
+                update_commands.append((create_echo, create_cmd))
         return update_commands
 
 

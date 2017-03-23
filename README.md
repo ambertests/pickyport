@@ -39,7 +39,9 @@ portages:
        password: dest_pass_2
        name: dest_db_name_2
      
-   update: /this/is/my/update.sql
+   update:
+     - /this/is/my/update.sql
+     - /this/is/my/other/update.sql
 ```
 
 ## Usage
