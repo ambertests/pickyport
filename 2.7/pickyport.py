@@ -198,18 +198,18 @@ class BasePorter(object):
 
         if not self.quiet:
             if self.dry_run:
-                print('===============\nStarting portage DRY RUN\n===============')
+                print '===============\nStarting portage DRY RUN\n==============='
             else:
-                print('===============\nStarting portage\n===============')
+                print '===============\nStarting portage\n==============='
 
         for cmd in cmd_list:
 
             if not self.quiet:
                 echo = cmd[0]
-                print(echo)
+                print echo
 
             if self.debug or self.dry_run:
-                print(cmd[1])
+                print cmd[1]
 
             if not self.dry_run:
                 proc = Popen(cmd[1], shell=True, stderr=PIPE)
@@ -217,8 +217,8 @@ class BasePorter(object):
                 if "ERROR" in output[1]:
                     # Don't duplicate the print if already in debug mode
                     if not self.debug:
-                        print(cmd[1])
-                    print(output[1])
+                        print cmd[1]
+                    print output[1]
                     # Remove the temp file used in the command from the
                     # list of temp files so it doesn't get deleted
                     for tf in self.temp_files:
@@ -226,16 +226,16 @@ class BasePorter(object):
                             self.temp_files.remove(tf)
 
             if not self.quiet:
-                print('-------------------\n')
+                print '-------------------\n'
 
         if not self.debug:
             if not self.quiet:
-                print('Removing temp files...')
+                print 'Removing temp files...'
             for tf in self.temp_files:
                 os.remove(tf)
 
         if not self.quiet:
-            print('Portage complete!\n\n')
+            print 'Portage complete!\n\n'
 
 
 class MySQLPorter(BasePorter):
@@ -384,7 +384,7 @@ class MySQLPorter(BasePorter):
         update_commands = []
         for update in self.update_scripts:
             if not os.path.isfile(update):
-                print("ERROR: %s does not exist!" % update)
+                print "ERROR: %s does not exist!" % update
                 continue
             for dest in self.dest:
                 create_cmd = "%s -h%s -u%s -p%s %s < %s" % (self.mysql,
@@ -418,10 +418,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config_file = args.config
     if not os.path.isfile(config_file):
-        print(config_file + " not found")
+        print config_file + " not found"
     else:
         try:
-            cfg = yaml.safe_load(open(config_file, 'r'))
+            cfg = yaml.safe_load(file(config_file, 'r'))
 
             if args.debug:
                 from pprint import pprint
@@ -432,10 +432,10 @@ if __name__ == '__main__':
                 if 'db_type' not in portage or portage['db_type'] == 'mysql':
                     porter = MySQLPorter(portage, args.quiet, args.debug, args.dry_run)
                 else:
-                    print("Only MySQL portages supported")
+                    print "Only MySQL portages supported"
                     continue
 
                 porter.do_portage()
-        except yaml.YAMLError as ye:
-            print("Could not parse configuration file")
-            print(ye)
+        except yaml.YAMLError, ye:
+            print "Could not parse configuration file"
+            print ye
